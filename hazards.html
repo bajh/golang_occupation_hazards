@@ -1,0 +1,172 @@
+<html>
+<head>
+<link href='https://fonts.googleapis.com/css?family=Asap|Yesteryear|Bangers' rel='stylesheet' type='text/css'>
+<style>
+  .container {
+    width:50%;
+    margin: 0 auto;
+  }
+  .main-header {
+    color: #F2D286;
+    font-family:Bangers;
+    font-size:44px;
+    border-bottom:8px solid #F2D286;
+    display:inline-block;
+  }
+  .info-box {
+    width: 46%;
+    background-color: #F2D286;
+    color:#276072;
+    float:left;
+    margin:2%;
+    min-height:400px;
+    font-family: Asap;
+    text-align:center
+  }
+  .info-box h3 {
+    font-family:Bangers;
+    font-size:28px;
+  }
+  .bottom-banner {
+    font-family: Yesteryear;
+    font-size: 34px;
+    display:inline-block;
+  }
+  .bottom-banner h2 {
+    color:#276072;
+    padding:6px 10px;
+    display:inline-block;
+    transform:rotate(-7deg);
+    width:100%;
+    margin: 0 auto;
+  }
+</style>
+</head>
+<body style="background:#276072">
+<div class="container">
+  <h1 class="main-header">
+    Remember the 4 Leading Causes of Server Crashes
+  </h1>
+</div>
+
+<div class="info-box">
+
+  <div class="bottom-banner">
+    <h2>Let's Keep Our Servers Soarin'!</h2>
+  </div>
+</div>
+
+<div class="info-box">
+  <h3>File Handle Leaks</h3>
+
+  <p>
+    Always remember to close files after opening them, usually with a defer
+    statement!
+  </p>
+
+  <p>
+    Worried you might have a file handle leak? Run `watch lsof -p <PID>` to
+    keep tabs on all the files your process is using; if you suspect you
+    have an issue with runaway TCP connections, you might even want to use
+    grep to only look at the sockets.
+  </p>
+
+  <p>
+    Strace is another great tool for diagnosing file leaks. Run `strace -p
+    <PID>` to see all
+    the system calls your program is making. You'll see a bunch of
+    nonsense, but maybe something will stand out.
+  </p>
+
+  <p>
+    If a series of files are opened within a for loop, use a defer
+    statement <i>outside</i> the loop to make sure they all get closed.
+  </p>
+</div>
+
+<div class="info-box">
+  <h3>Unclosed Database Connections</h3>
+  <p>
+    Any time a database connection is opened via sql.DB.Begin(), it must
+    eventually be closed with tx.Rollback() or tx.Commit(). If
+    transactions are not closed, MySQL will eventually start rejecting
+    connections with the message "Too many open connections."
+  </p>
+  <p>
+    If you suspect you have a database connection leak,
+    enter your MySQL console and run `show processlist` -- a steadily
+    growing list of running queries means something isn't closing!
+  </p>
+  <p>
+    Also, after executing a query against a database, make sure to
+    close your *sql.Rows object! Otherwise subsequent queries will give
+    you errors.
+  </p>
+</div>
+
+<div class="info-box">
+  <h3>Neverending Keep-Alives</h3>
+  <p>
+    By default, Go's http client will keep network connections open after
+    a request has been satisfied so the connection can be be reused. But
+    this can result in connections (and the file handles they rely on)
+    piling up.
+  </p>
+
+  <p>
+    Also watch out for hanging TCP connections - the default HTTP client
+    does not have a timeout, so connections to a server that never
+    responds may stay around longer than desired. Use net.DialTimeout if
+    you're dialing directly; change the Dial method of your HTTP client's
+    transport to use DialTimeout; and/or set a timeout directly on your
+    client. The client's timeout will be enforced if no response is
+    received in time.
+    <code>
+    client := http.Client{
+        Timeout: time.Duration(5 * time.Second),
+    }
+    </code>
+
+    Whereas a dial timeout goes into effect if the intial dial does not
+    go through.
+    <code>
+      client := http.Client{
+          Transport: &http.Transport{
+              Dial: func(network, addr string) (net.Conn, error) {
+                  return net.DialTimeout(network, addr, timeout)
+              }
+          }
+      }
+    </code>
+  </p>
+
+  <p>
+    Speaking of HTTP, response bodies returned by <code>http.Get</code>,
+    <code>http.Post</code> need to be closed (generally, you'll just throw
+    a <code>defer resp.Body.Close()</code> in there. TCP connection
+    objects returned by net.Dial also need to be closed! What's wrong with
+    this picture (used to test a system's ability to make external
+    requests)?
+    <code>
+      _, err := net.Dial("tcp", "google.com")
+    </code>
+  </p>
+</div>
+
+<div class="info-box">
+  <h3>But No Matter What Happens... Remember Not to Panic!</h3>
+  <p>
+    Panics can be caused by accessing a slice or
+    array at an out-of-range index, so always check the length of
+    arrays before accessing their members.
+  </p>
+  <p>
+    Lastly, remember that unchecked errors can be deadly!
+  </p>
+</div>
+
+<footer>
+  Logos by Justin Blake (Thumbs Up)
+</footer>
+</body>
+</html>
